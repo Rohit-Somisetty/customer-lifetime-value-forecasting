@@ -6,7 +6,7 @@ Bulletproof customer economics for marketing, finance, and experimentation: prob
 
 ```mermaid
 flowchart LR
-    A[Transactions + Behaviors] --> B[LTV Pipeline (lifetimes)]
+    A[Transactions + Behaviors] --> B[LTV Pipeline]
     B --> C[Revenue Forecasting]
     A --> D[Marketing Interventions]
     D --> E[Causal Inference]
