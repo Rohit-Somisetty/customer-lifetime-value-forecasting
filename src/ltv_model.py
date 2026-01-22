@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, Iterable, Tuple
 
 import numpy as np
 import pandas as pd
@@ -42,9 +42,7 @@ def load_transactions(csv_path: Path) -> pd.DataFrame:
     return df
 
 
-def summarize_customers(
-    transactions: pd.DataFrame, freq: str = DEFAULT_FREQ
-) -> pd.DataFrame:
+def summarize_customers(transactions: pd.DataFrame, freq: str = DEFAULT_FREQ) -> pd.DataFrame:
     """Aggregate transaction history to frequency/recency/monetary features."""
 
     summary = summary_data_from_transaction_data(
@@ -63,21 +61,25 @@ def build_calibration_holdout(
     transactions: pd.DataFrame,
     holdout_days: int = DEFAULT_HOLDOUT_DAYS,
     freq: str = DEFAULT_FREQ,
-) -> Tuple[pd.DataFrame, pd.Timestamp]:
+) -> tuple[pd.DataFrame, pd.Timestamp]:
     """Create calibration/holdout splits using the last N days as holdout."""
 
     if holdout_days <= 0:
         raise ValueError("holdout_days must be positive")
     max_date = transactions["transaction_date"].max()
     cutoff = max_date - pd.Timedelta(days=holdout_days)
-    cal_hold = calibration_and_holdout_data(
-        transactions,
-        customer_id_col="customer_id",
-        datetime_col="transaction_date",
-        monetary_value_col="revenue",
-        freq=freq,
-        calibration_period_end=cutoff,
-    ).reset_index().rename(columns={"index": "customer_id"})
+    cal_hold = (
+        calibration_and_holdout_data(
+            transactions,
+            customer_id_col="customer_id",
+            datetime_col="transaction_date",
+            monetary_value_col="revenue",
+            freq=freq,
+            calibration_period_end=cutoff,
+        )
+        .reset_index()
+        .rename(columns={"index": "customer_id"})
+    )
     return cal_hold, cutoff
 
 
@@ -105,7 +107,7 @@ def fit_ggf_model(summary_table: pd.DataFrame) -> GammaGammaFitter:
     return ggf
 
 
-def assess_model_inputs(summary_table: pd.DataFrame) -> Dict[str, float]:
+def assess_model_inputs(summary_table: pd.DataFrame) -> dict[str, float]:
     """Compute quick diagnostics that align with BG/NBD assumptions."""
 
     total = len(summary_table)
@@ -124,7 +126,7 @@ def assess_model_inputs(summary_table: pd.DataFrame) -> Dict[str, float]:
 
 def evaluate_holdout_predictions(
     bgf: BetaGeoFitter, calibration_table: pd.DataFrame
-) -> Dict[str, float]:
+) -> dict[str, float]:
     """Compare predicted vs actual holdout transactions."""
 
     preds = bgf.predict(
@@ -147,9 +149,7 @@ def evaluate_holdout_predictions(
     }
 
 
-def _expected_avg_value(
-    ggf: GammaGammaFitter, summary_table: pd.DataFrame
-) -> pd.Series:
+def _expected_avg_value(ggf: GammaGammaFitter, summary_table: pd.DataFrame) -> pd.Series:
     """Helper that applies Gamma-Gamma expectation with sensible fallbacks."""
 
     result = pd.Series(np.nan, index=summary_table.index)
@@ -204,9 +204,7 @@ def generate_ltv_predictions(
     return predictions
 
 
-def summarize_ltv_distribution(
-    predictions: pd.DataFrame, horizon_column: str
-) -> Dict[str, float]:
+def summarize_ltv_distribution(predictions: pd.DataFrame, horizon_column: str) -> dict[str, float]:
     """Compute descriptive stats for stakeholder communication."""
 
     horizon_values = predictions[horizon_column]

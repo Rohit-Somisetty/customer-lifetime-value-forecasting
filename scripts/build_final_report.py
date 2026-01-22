@@ -45,7 +45,11 @@ def main() -> None:
         .asfreq("W-MON", fill_value=0.0)
     )
     backtest_metrics = backtest(overall_series, test_size=12)
-    overall_metrics = backtest_metrics["model" if not pd.isna(backtest_metrics["model"]["rmse"]) else "baseline"]
+    metric_key = "model"
+    model_rmse = backtest_metrics["model"].get("rmse")
+    if pd.isna(model_rmse):
+        metric_key = "baseline"
+    overall_metrics = backtest_metrics[metric_key]
     best_model_name = (
         overall_fc.loc[overall_fc["horizon_weeks"] == 12, "model_name"].iloc[0]
         if not overall_fc.empty
@@ -58,22 +62,43 @@ def main() -> None:
     ate = causal.loc[causal["metric"] == "ipw_ate"].iloc[0]
 
     recommendations = [
-        "Prioritize High-LTV cohort retention where 56% of value resides; deploy bespoke service and offers there first.",
-        "Use ETS forecasts (~70% lower RMSE than seasonal naive) to set weekly revenue guardrails and adjust spend in near real time.",
-        "Gate scaled campaign rollouts on propensity-adjusted lift (~$15) rather than naive +$75 to avoid overstated ROI.",
-        "Leverage channel-level forecasts and segment-channel mix to tailor creative/messaging for the highest incremental density.",
-        "Track balance diagnostics in every observational study to ensure confounding is controlled before presenting lift to finance.",
+        (
+            "Prioritize High-LTV cohort retention where 56% of value resides; "
+            "deploy bespoke service and offers there first."
+        ),
+        (
+            "Use ETS forecasts (~70% lower RMSE than seasonal naive) to set weekly "
+            "revenue guardrails and adjust spend in near real time."
+        ),
+        (
+            "Gate scaled campaign rollouts on propensity-adjusted lift (~$15) rather "
+            "than naive +$75 to avoid overstated ROI."
+        ),
+        (
+            "Leverage channel-level forecasts and segment-channel mix to tailor "
+            "creative/messaging for the highest incremental density."
+        ),
+        (
+            "Track balance diagnostics in every observational study to ensure "
+            "confounding is controlled before presenting lift to finance."
+        ),
     ]
 
     report_lines = [
         "# Final Report",
         "",
         "## Project Goal",
-        "Deliver a production-ready toolkit that predicts customer lifetime value, forecasts revenue, and quantifies incremental lift for marketing decisions.",
+        (
+            "Deliver a production-ready toolkit that predicts customer lifetime value, "
+            "forecasts revenue, and quantifies incremental lift for marketing decisions."
+        ),
         "",
         "## Data & Artifacts",
         "- Transactions + behavioral aggregates (synthetic) feed `data/ltv_predictions.csv`.",
-        "- Forecast outputs live in `data/revenue_forecasts_*.csv`; causal diagnostics in `data/causal_results.csv`.",
+        (
+            "- Forecast outputs live in `data/revenue_forecasts_*.csv`; causal "
+            "diagnostics in `data/causal_results.csv`."
+        ),
         "- Visual assets stored under `reports/figures/`.",
         "",
         "## LTV Insights",
@@ -88,14 +113,31 @@ def main() -> None:
         "",
         "## Forecasting Outlook",
         f"- Best model selected: {best_model_name} (based on holdout RMSE).",
-        f"- Backtest MAE: {overall_metrics['mae']:,.0f}, RMSE: {overall_metrics['rmse']:,.0f}, MAPE: {overall_metrics['mape']:,.1f}%.",
+        (
+            f"- Backtest MAE: {overall_metrics['mae']:,.0f}, "
+            f"RMSE: {overall_metrics['rmse']:,.0f}, "
+            f"MAPE: {overall_metrics['mape']:,.1f}%."
+        ),
         f"- Next 12-week revenue outlook: ${revenue_12w:,.0f} (sum of forecasts).",
         "",
         "## Causal Incrementality",
-        f"- Naive difference in means: ${naive['estimate']:,.1f} per customer (95% CI ${naive['ci_low']:,.1f} to ${naive['ci_high']:,.1f}).",
-        f"- Propensity-score ATT: ${att['estimate']:,.1f} (95% CI ${att['ci_low']:,.1f} to ${att['ci_high']:,.1f}).",
-        f"- IPW ATE: ${ate['estimate']:,.1f} (95% CI ${ate['ci_low']:,.1f} to ${ate['ci_high']:,.1f}).",
-        "- Interpretation: Selection bias inflates naive lift; adjusted metrics provide realistic planning inputs.",
+        (
+            f"- Naive difference in means: ${naive['estimate']:,.1f} per "
+            f"customer (95% CI ${naive['ci_low']:,.1f} to "
+            f"${naive['ci_high']:,.1f})."
+        ),
+        (
+            f"- Propensity-score ATT: ${att['estimate']:,.1f} (95% CI "
+            f"${att['ci_low']:,.1f} to ${att['ci_high']:,.1f})."
+        ),
+        (
+            f"- IPW ATE: ${ate['estimate']:,.1f} (95% CI ${ate['ci_low']:,.1f} "
+            f"to ${ate['ci_high']:,.1f})."
+        ),
+        (
+            "- Interpretation: Selection bias inflates naive lift; adjusted "
+            "metrics provide realistic planning inputs."
+        ),
         "",
         "![Balance Diagnostics](figures/balance_plot.png)",
         "",

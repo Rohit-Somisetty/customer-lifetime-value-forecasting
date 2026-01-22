@@ -147,18 +147,32 @@ def _build_summary_markdown(diff_result, matching) -> str:
         # Marketing Incrementality Summary
 
         ## Why it matters
-        Campaign owners need to understand incremental revenue beyond natural demand. We simulate a biased targeting process (high-LTV customers receive more treatments) and correct that bias with modern causal techniques.
+          Campaign owners need to understand incremental revenue beyond natural demand.
+          We simulate a biased targeting process (high-LTV customers receive more
+          treatments) and correct that bias with modern causal techniques.
 
         ## Key findings
-        - **Naive lift** (difference in means): {diff_result.diff:,.2f} revenue per customer (CI {diff_result.ci_low:,.2f} to {diff_result.ci_high:,.2f}). This overstates true incremental impact because high-value customers were targeted more often.
-        - **Propensity score ATT**: {matching.att:,.2f} (95% CI {matching.att_ci[0]:,.2f} to {matching.att_ci[1]:,.2f}). This is the causal lift for treated customers after adjusting for engagement and value covariates.
-        - **IPW ATE**: {matching.ate:,.2f} (95% CI {matching.ate_ci[0]:,.2f} to {matching.ate_ci[1]:,.2f}). This represents the expected lift if the campaign were rolled out to the full population.
+          - **Naive lift** (difference in means): {diff_result.diff:,.2f} revenue per
+             customer (CI {diff_result.ci_low:,.2f} to {diff_result.ci_high:,.2f}). This
+             overstates true incremental impact because high-value customers were
+             targeted more often.
+          - **Propensity score ATT**: {matching.att:,.2f} (95% CI
+             {matching.att_ci[0]:,.2f} to {matching.att_ci[1]:,.2f}). This is the causal
+             lift for treated customers after adjusting for engagement and value
+             covariates.
+          - **IPW ATE**: {matching.ate:,.2f} (95% CI {matching.ate_ci[0]:,.2f} to
+             {matching.ate_ci[1]:,.2f}). This represents the expected lift if the
+             campaign were rolled out to the full population.
 
         ## Action plan
-        1. Use the ATT as the benchmark for go/no-go decisions; it reflects realistic uplift for the targeted audience.
-        2. Continue bias diagnostics via the balance plot—covariate SMDs land inside ±0.1 after matching, indicating adequate overlap.
-        3. Track lift distributions by segment (see figures) to prioritize budgets toward cohorts with the highest incremental density.
-        4. Incorporate these causal estimates into experimentation-roadmap reviews and marketing finance models.
+          1. Use the ATT as the benchmark for go/no-go decisions; it reflects realistic
+              uplift for the targeted audience.
+          2. Continue bias diagnostics via the balance plot—covariate SMDs land inside
+              ±0.1 after matching, indicating adequate overlap.
+          3. Track lift distributions by segment (see figures) to prioritize budgets
+              toward cohorts with the highest incremental density.
+          4. Incorporate these causal estimates into experimentation-roadmap reviews
+              and marketing finance models.
         """
     ).strip()
     return summary

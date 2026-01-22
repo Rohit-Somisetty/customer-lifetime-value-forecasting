@@ -18,7 +18,9 @@ st.caption("Single source of truth for LTV, revenue outlook, and marketing incre
 def _csv_path(name: str) -> Path:
     path = DATA_DIR / name
     if not path.exists():
-        st.error(f"Missing data file: {path.relative_to(PROJECT_ROOT)}. Run scripts/run_all.py first.")
+        st.error(
+            "Missing data file: " f"{path.relative_to(PROJECT_ROOT)}. Run scripts/run_all.py first."
+        )
         st.stop()
     return path
 
@@ -41,14 +43,17 @@ figures = {
     "lift": REPORTS_DIR / "figures" / "lift_distribution.png",
 }
 
-for label, fig_path in figures.items():
+for _label, fig_path in figures.items():
     if not fig_path.exists():
         st.warning(
-            f"Missing figure {fig_path.relative_to(PROJECT_ROOT)}. Run scripts/run_causal_pipeline.py to regenerate."
+            "Missing figure "
+            f"{fig_path.relative_to(PROJECT_ROOT)}. "
+            "Run scripts/run_causal_pipeline.py to regenerate."
         )
 
 
 # --- Helper metrics --------------------------------------------------------
+
 
 def compute_ltv_kpis(df: pd.DataFrame) -> dict[str, float]:
     stats = {}
@@ -101,7 +106,8 @@ with tab_exec:
     lift_cols[1].metric("PSM ATT", f"${att_lift:,.1f}/cust")
     lift_cols[2].metric("IPW ATE", f"${ate_lift:,.1f}/cust")
     st.caption(
-        "Naive lift shows targeting bias; propensity-adjusted metrics provide realistic incremental expectations."
+        "Naive lift shows targeting bias; propensity-adjusted metrics provide "
+        "realistic incremental expectations."
     )
 
 with tab_segments:
@@ -113,24 +119,35 @@ with tab_segments:
     st.pyplot(fig)
 
     st.markdown("### Top Customers by Predicted LTV")
-    top_customers = (
-        ltv_df.sort_values("predicted_ltv_12m", ascending=False)
-        .head(10)[["customer_id", "predicted_ltv_12m", "expected_avg_value"]]
-    )
+    top_customers = ltv_df.sort_values("predicted_ltv_12m", ascending=False).head(10)[
+        ["customer_id", "predicted_ltv_12m", "expected_avg_value"]
+    ]
     top_customers.columns = ["Customer", "Predicted LTV (12M)", "Avg Order Value"]
-    st.dataframe(top_customers.style.format({"Predicted LTV (12M)": "${:,.0f}", "Avg Order Value": "${:,.0f}"}))
+    st.dataframe(
+        top_customers.style.format(
+            {
+                "Predicted LTV (12M)": "${:,.0f}",
+                "Avg Order Value": "${:,.0f}",
+            }
+        )
+    )
 
     st.markdown("### Segment Mix by Primary Channel")
     if "primary_channel" in segments_df.columns:
         mix = (
-            segments_df.groupby(["primary_channel", "ltv_segment"]).size().reset_index(name="customers")
+            segments_df.groupby(["primary_channel", "ltv_segment"])
+            .size()
+            .reset_index(name="customers")
         )
         totals = mix.groupby("primary_channel")["customers"].transform("sum")
         mix["share"] = mix["customers"] / totals
         pivot = mix.pivot(index="primary_channel", columns="ltv_segment", values="share").fillna(0)
         st.dataframe(pivot.style.format("{:.0%}"))
     else:
-        st.info("Primary channel metadata missing; rerun scripts/run_forecasting_pipeline.py to populate it.")
+        st.info(
+            "Primary channel metadata missing; "
+            "rerun scripts/run_forecasting_pipeline.py to populate it."
+        )
 
 with tab_forecasts:
     st.subheader("Forecast Explorer")
@@ -140,8 +157,22 @@ with tab_forecasts:
     def plot_forecast(df: pd.DataFrame, label: str) -> None:
         fig, ax = plt.subplots(figsize=(10, 4))
         ax.plot(df["date"], df["y_pred"], label="Forecast", color="#d17a22")
-        ax.fill_between(df["date"], df["lower_80"], df["upper_80"], color="#d17a22", alpha=0.2, label="80% PI")
-        ax.fill_between(df["date"], df["lower_95"], df["upper_95"], color="#d17a22", alpha=0.1, label="95% PI")
+        ax.fill_between(
+            df["date"],
+            df["lower_80"],
+            df["upper_80"],
+            color="#d17a22",
+            alpha=0.2,
+            label="80% PI",
+        )
+        ax.fill_between(
+            df["date"],
+            df["lower_95"],
+            df["upper_95"],
+            color="#d17a22",
+            alpha=0.1,
+            label="95% PI",
+        )
         ax.set_title(f"{label} revenue forecast ({horizon}w horizon)")
         ax.set_ylabel("Revenue")
         ax.set_xlabel("Week")
@@ -174,12 +205,14 @@ with tab_incrementality:
             ci_low=lambda df: df["ci_low"].map(lambda x: f"${x:,.1f}"),
             ci_high=lambda df: df["ci_high"].map(lambda x: f"${x:,.1f}"),
         )
-        .rename(columns={
-            "metric": "Metric",
-            "estimate": "Estimate",
-            "ci_low": "CI Low",
-            "ci_high": "CI High",
-        })
+        .rename(
+            columns={
+                "metric": "Metric",
+                "estimate": "Estimate",
+                "ci_low": "CI Low",
+                "ci_high": "CI High",
+            }
+        )
     )
 
     st.markdown("### Balance Diagnostics")
@@ -193,5 +226,8 @@ with tab_incrementality:
         st.image(str(figures["lift"]), caption="Post minus pre revenue lift")
 
     st.markdown(
-        "**What this means:** Naive comparisons (\~$75) greatly overstate true lift. After adjusting for engagement and value, incremental revenue falls to low double digits. Focus treatments on High-LTV cohorts and prioritize controlled tests before scaling to lower tiers."
+        "**What this means:** Naive comparisons (\~$75) greatly overstate true lift. "
+        "After adjusting for engagement and value, incremental revenue falls to low double digits. "
+        "Focus treatments on High-LTV cohorts and prioritize controlled tests "
+        "before scaling to lower tiers."
     )

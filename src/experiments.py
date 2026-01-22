@@ -2,11 +2,10 @@
 
 from __future__ import annotations
 
+import math
+from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, Iterable, Tuple
-
-import math
 
 import numpy as np
 import pandas as pd
@@ -31,9 +30,9 @@ class DiffInMeansResult:
 @dataclass
 class MatchingResult:
     att: float
-    att_ci: Tuple[float, float]
+    att_ci: tuple[float, float]
     ate: float
-    ate_ci: Tuple[float, float]
+    ate_ci: tuple[float, float]
     matched_pairs: pd.DataFrame
     propensities: pd.Series
     balance_table: pd.DataFrame
@@ -79,9 +78,7 @@ def generate_synthetic_interventions(
     ltv["segment_value"] = ltv["segment"].map(segment_map)
 
     # Dominant channel per customer
-    channel_pref = (
-        transactions.groupby(["customer_id", "channel"]).size().reset_index(name="cnt")
-    )
+    channel_pref = transactions.groupby(["customer_id", "channel"]).size().reset_index(name="cnt")
     channel_pref = channel_pref.sort_values(["customer_id", "cnt"], ascending=[True, False])
     channel_pref = channel_pref.drop_duplicates("customer_id")[["customer_id", "channel"]]
     ltv = ltv.merge(channel_pref, on="customer_id", how="left")
@@ -110,7 +107,7 @@ def generate_synthetic_interventions(
     ltv["campaign_id"] = ltv["channel"].map(campaign_lookup)
 
     # Treatment propensity driven by LTV + engagement
-    ltv_score = (ltv["predicted_ltv_12m"] - ltv["predicted_ltv_12m"].min())
+    ltv_score = ltv["predicted_ltv_12m"] - ltv["predicted_ltv_12m"].min()
     ltv_score /= max(1e-6, ltv_score.max())
     engagement_score = ltv["frequency"] / ltv["frequency"].max()
     base_prob = 0.15 + 0.55 * ltv_score + 0.2 * engagement_score
@@ -134,7 +131,9 @@ def generate_synthetic_interventions(
             pre_vals.append(0.0)
             post_vals.append(0.0)
             continue
-        pre_mask = (txns["transaction_date"] >= pre_start) & (txns["transaction_date"] < campaign_date)
+        pre_mask = (txns["transaction_date"] >= pre_start) & (
+            txns["transaction_date"] < campaign_date
+        )
         post_mask = (txns["transaction_date"] >= campaign_date) & (
             txns["transaction_date"] <= post_end
         )
@@ -271,13 +270,9 @@ def propensity_score_matching(
     ate = float(ipw_terms.mean())
     ate_ci = _bootstrap_ci(ipw_terms.to_numpy(), n_bootstrap, random_state)
 
-    balance_pre = _standardized_mean_differences(
-        model_data, covariate_cols, treatment_col
-    )
+    balance_pre = _standardized_mean_differences(model_data, covariate_cols, treatment_col)
     balance_pre["stage"] = "Pre-Match"
-    balance_post = _standardized_mean_differences(
-        matched_pairs, covariate_cols, treatment_col
-    )
+    balance_post = _standardized_mean_differences(matched_pairs, covariate_cols, treatment_col)
     balance_post["stage"] = "Post-Match"
     balance_table = pd.concat([balance_pre, balance_post], ignore_index=True)
 
@@ -307,16 +302,18 @@ def _standardized_mean_differences(
         var_c = c_vals.var(ddof=1)
         pooled = (var_t + var_c) / 2
         smd = (mean_t - mean_c) / np.sqrt(pooled) if pooled > 0 else 0.0
-        rows.append({
-            "covariate": col,
-            "mean_treatment": float(mean_t),
-            "mean_control": float(mean_c),
-            "smd": float(smd),
-        })
+        rows.append(
+            {
+                "covariate": col,
+                "mean_treatment": float(mean_t),
+                "mean_control": float(mean_c),
+                "smd": float(smd),
+            }
+        )
     return pd.DataFrame(rows)
 
 
-def _bootstrap_ci(values: np.ndarray, n_bootstrap: int, random_state: int) -> Tuple[float, float]:
+def _bootstrap_ci(values: np.ndarray, n_bootstrap: int, random_state: int) -> tuple[float, float]:
     rng = np.random.default_rng(random_state)
     clean = np.asarray(values, dtype=float)
     if clean.size == 0:

@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Dict, Iterable, Tuple
 
 import numpy as np
 import pandas as pd
@@ -49,7 +48,7 @@ class ETSModel:
 
 def build_timeseries(
     transactions: pd.DataFrame, segments: pd.DataFrame
-) -> Tuple[pd.DataFrame, pd.DataFrame]:
+) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Build daily and weekly revenue datasets for overall/channel/segment views."""
 
     transactions = transactions.copy()
@@ -77,9 +76,7 @@ def fit_baseline(series: pd.Series, seasonal_lag: int = 52) -> SeasonalNaiveMode
     return SeasonalNaiveModel(history=series, seasonal_lag=lag, residual_std=resid_std or 0.0)
 
 
-def fit_sarimax_or_ets(
-    series: pd.Series, seasonal_periods: int = 52
-) -> ETSModel:
+def fit_sarimax_or_ets(series: pd.Series, seasonal_periods: int = 52) -> ETSModel:
     """Fit an exponential smoothing model with optional seasonality."""
 
     series = series.sort_index()
@@ -108,7 +105,7 @@ def backtest(
     test_size: int = 12,
     seasonal_lag: int = 52,
     seasonal_periods: int = 52,
-) -> Dict[str, Dict[str, float]]:
+) -> dict[str, dict[str, float]]:
     """Time-based backtest comparing baseline vs ETS forecasts."""
 
     series = series.sort_index()
@@ -220,7 +217,7 @@ def _complete_time_index(df: pd.DataFrame, freq: str) -> pd.DataFrame:
     return pd.concat(output, ignore_index=True)
 
 
-def _compute_metrics(actual: pd.Series, predicted: pd.Series) -> Dict[str, float]:
+def _compute_metrics(actual: pd.Series, predicted: pd.Series) -> dict[str, float]:
     actual, predicted = actual.align(predicted, join="inner")
     errors = actual - predicted
     mae = float(np.mean(np.abs(errors)))

@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Dict, List, Tuple
 
 import numpy as np
 import pandas as pd
@@ -51,11 +50,11 @@ def create_segments(
     return segments
 
 
-def prepare_weekly_series(
-    weekly_df: pd.DataFrame, group_type: str, group_value: str
-) -> pd.Series:
+def prepare_weekly_series(weekly_df: pd.DataFrame, group_type: str, group_value: str) -> pd.Series:
     subset = (
-        weekly_df[(weekly_df["group_type"] == group_type) & (weekly_df["group_value"] == group_value)]
+        weekly_df[
+            (weekly_df["group_type"] == group_type) & (weekly_df["group_value"] == group_value)
+        ]
         .sort_values("date")
         .set_index("date")
     )
@@ -63,7 +62,7 @@ def prepare_weekly_series(
     return series
 
 
-def select_model(series: pd.Series) -> Tuple[Dict[str, Dict[str, float]], str, object]:
+def select_model(series: pd.Series) -> tuple[dict[str, dict[str, float]], str, object]:
     try:
         metrics = backtest(
             series,
@@ -78,7 +77,9 @@ def select_model(series: pd.Series) -> Tuple[Dict[str, Dict[str, float]], str, o
         }
         best_key = "baseline"
     else:
-        best_key = "model" if metrics["model"]["rmse"] <= metrics["baseline"]["rmse"] else "baseline"
+        best_key = (
+            "model" if metrics["model"]["rmse"] <= metrics["baseline"]["rmse"] else "baseline"
+        )
 
     if best_key == "model":
         fitted = fit_sarimax_or_ets(series, seasonal_periods=SEASONAL_PERIODS)
@@ -91,10 +92,10 @@ def select_model(series: pd.Series) -> Tuple[Dict[str, Dict[str, float]], str, o
 
 def forecast_group(
     series: pd.Series, group_type: str, group_value: str
-) -> Tuple[pd.DataFrame, Dict[str, Dict[str, float]], str]:
+) -> tuple[pd.DataFrame, dict[str, dict[str, float]], str]:
     metrics, model_name, fitted_model = select_model(series)
     last_date = series.index[-1]
-    outputs: List[pd.DataFrame] = []
+    outputs: list[pd.DataFrame] = []
     for horizon in FORECAST_HORIZONS:
         fc = forecast_with_intervals(model_name, fitted_model, horizon, FORECAST_FREQ, last_date)
         fc["horizon_weeks"] = horizon
@@ -119,9 +120,8 @@ def main() -> None:
         .reset_index(name="cnt")
         .sort_values(["customer_id", "cnt"], ascending=[True, False])
     )
-    channel_map = (
-        channel_pref.drop_duplicates("customer_id")[["customer_id", "channel"]]
-        .rename(columns={"channel": "primary_channel"})
+    channel_map = channel_pref.drop_duplicates("customer_id")[["customer_id", "channel"]].rename(
+        columns={"channel": "primary_channel"}
     )
     segments = create_segments(
         ltv_path,
@@ -133,9 +133,7 @@ def main() -> None:
     weekly_ts.to_csv(data_dir / "revenue_weekly.csv", index=False)
 
     overall_series = prepare_weekly_series(weekly_ts, "overall", "all")
-    overall_fc, overall_metrics, overall_model = forecast_group(
-        overall_series, "overall", "all"
-    )
+    overall_fc, overall_metrics, overall_model = forecast_group(overall_series, "overall", "all")
     print("Overall forecast model:", overall_model)
     print("Overall metrics:", overall_metrics)
 
@@ -166,41 +164,47 @@ def main() -> None:
         channel_frames.append(fc)
     channels_fc = pd.concat(channel_frames, ignore_index=True)
 
-    overall_out = overall_fc[[
-        "date",
-        "y_true",
-        "y_pred",
-        "lower_80",
-        "upper_80",
-        "lower_95",
-        "upper_95",
-        "model_name",
-        "horizon_weeks",
-    ]]
-    segment_out = segments_fc[[
-        "segment",
-        "date",
-        "y_true",
-        "y_pred",
-        "lower_80",
-        "upper_80",
-        "lower_95",
-        "upper_95",
-        "model_name",
-        "horizon_weeks",
-    ]]
-    channel_out = channels_fc[[
-        "channel",
-        "date",
-        "y_true",
-        "y_pred",
-        "lower_80",
-        "upper_80",
-        "lower_95",
-        "upper_95",
-        "model_name",
-        "horizon_weeks",
-    ]]
+    overall_out = overall_fc[
+        [
+            "date",
+            "y_true",
+            "y_pred",
+            "lower_80",
+            "upper_80",
+            "lower_95",
+            "upper_95",
+            "model_name",
+            "horizon_weeks",
+        ]
+    ]
+    segment_out = segments_fc[
+        [
+            "segment",
+            "date",
+            "y_true",
+            "y_pred",
+            "lower_80",
+            "upper_80",
+            "lower_95",
+            "upper_95",
+            "model_name",
+            "horizon_weeks",
+        ]
+    ]
+    channel_out = channels_fc[
+        [
+            "channel",
+            "date",
+            "y_true",
+            "y_pred",
+            "lower_80",
+            "upper_80",
+            "lower_95",
+            "upper_95",
+            "model_name",
+            "horizon_weeks",
+        ]
+    ]
 
     overall_out.to_csv(data_dir / "revenue_forecasts_overall.csv", index=False)
     segment_out.to_csv(data_dir / "revenue_forecasts_by_segment.csv", index=False)
